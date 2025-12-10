@@ -1,0 +1,120 @@
+<template>
+  <div>
+    <!-- Header Area -->
+    <Header />
+    <!-- Banner -->
+    <BannerProps title="Product" subtitle="Home - Product" />
+    <!-- Product -->
+    <div class="product_image_area">
+      <div class="container">
+        <div class="row s_product_inner">
+          <div class="col-lg-6">
+            <div class="owl-theme s_Product_carousel">
+              <div class="single-prd-item">
+                <img
+                  v-if="product?.image"
+                  class="img-fluid"
+                  :src="product.image"
+                  :alt="product.name"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5 offset-lg-1">
+            <div class="s_product_text" v-if="product">
+              <h3>{{ product.name }}</h3>
+              <h2>${{ product.price }}</h2>
+              <ul class="list">
+                <li><span>Category</span> : {{ product.category }}</li>
+                <li>
+                  <span>Availibility</span> :
+                  {{ product.stock > 0 ? "In Stock" : "Out of Stock" }}
+                </li>
+              </ul>
+              <div class="product_count" v-if="product">
+                <label for="qty">Quantity:</label>
+                <div class="input-group" style="width: 150px">
+                  <input
+                    type="number"
+                    class="form-control text-center"
+                    v-model.number="quantity"
+                    min="1"
+                  />
+                </div>
+                <button class="button primary-btn" @click="handleAddToCart">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer mt-5">
+    <div class="footer-area">
+      <div class="container">
+        <p class="text-center pt-5">© 2025 Aroma Shop. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</template>
+
+<script setup>
+import { ref, onMounted, computed } from "vue";
+import { useRoute } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { useCartStore } from "@/stores/cart";
+import Header from "@/components/Header.vue";
+import BannerProps from "../components/BannerProps.vue";
+const API_URL = process.env.VUE_APP_API;
+const auth = useAuthStore();
+const isLoggedIn = computed(() => !!auth.token && !!auth.userEmail);
+
+const route = useRoute();
+const cart = useCartStore();
+
+const quantity = ref(1);
+const product = ref({});
+const showCart = ref(false);
+
+onMounted(async () => {
+  const id = route.params.id;
+  const res = await fetch(`/api/products/${id}`); // 檢查這條路徑是否正確
+  const data = await res.json();
+  product.value = {
+    id: data.product_id,
+    name: data.name,
+    price: data.price,
+    image: data.image,
+    category: data.category,
+    stock: data.stock, // 庫存屬性以便前端檢查
+  };
+});
+
+function handleAddToCart() {
+  if (!isLoggedIn.value) {
+    alert("請先登入");
+    return;
+  }
+
+  if (!product.value || !quantity.value || quantity.value <= 0) {
+    alert("請輸入有效數量");
+    return;
+  }
+
+  cart.individualaddItem({
+    id: product.value.id, // product是從API獲取的商品資料
+    name: product.value.name,
+    price: product.value.price,
+    image: product.value.image,
+    addQty: quantity.value, // ← 改名：要加入的增量
+    stock: product.value.stock, // ← 多帶庫存，方便前端先擋
+  });
+  // 成功就不顯示alert了
+  //alert('商品已加入購物車！')
+  showCart.value = true;
+}
+</script>
