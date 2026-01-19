@@ -49,12 +49,21 @@
 </template>
 
 <script setup>
-import { ref,onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const users = ref([])
-const API_URL = process.env.VUE_APP_API
+
 onMounted(async () => {
-  const res = await fetch(`${API_URL}/api/users`)
-  users.value = await res.json()
+  try {
+    const res = await fetch('/api/users')   // ✅ 改這裡：不要用 API_URL
+    if (!res.ok) {
+      throw new Error('讀取會員資料失敗')
+    }
+    users.value = await res.json()
+  } catch (err) {
+    console.error('❌ 載入會員訂單失敗:', err)
+    users.value = []
+  }
 })
 </script>
+
